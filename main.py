@@ -185,12 +185,11 @@ try:
     w = Label(root,text="LOADING...")
     w.pack()
     w.wait_visibility()
-    #root.wait_visibility()
     conn, customer_ids, customer_list = init()
     w.destroy()
-except Exception as e:
+except: 
     tkinter.messagebox.showerror("Error retrieving customer info",
-                                 "Error retrieving customer info: " + str(e))
+                                 "Error retrieving customer info: Either the internet ain't working or your shopify connection info is wrong in conn_info.py")
     exit()
 
 
