@@ -90,8 +90,8 @@ def get_carrier_names(conn):
     carriers = map(lambda s: s["name"], cs_resp["carrier_services"])
     return list(carriers)
 
-def gen_order(conn, cid, email):
-    form = load_workbook(filename="seas.xlsx", read_only=True)['Order Form'] 
+def gen_order(conn, cid, email, fname):
+    form = load_workbook(filename=fname, read_only=True)['Order Form'] 
 
     variants = conn.get_all_products()
 
@@ -125,7 +125,7 @@ def make_order(customer,customers,xls_path):
     
     cid = customers[customer]["cid"]
     email = customers[customer]["email"]
-    order = gen_order(conn, cid, email)
+    order = gen_order(conn, cid, email, xls_path)
     #print(order)
     resp = conn.put_order(order)
     if resp.ok:
@@ -179,7 +179,7 @@ def init():
 
 root = Tk()
 root.title("Seed Racks Excel Order Reader")
-root.geometry("600x80")
+root.geometry("600x100")
 
 try:
     w = Label(root,text="LOADING...")
