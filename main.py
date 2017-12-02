@@ -43,14 +43,14 @@ def get_shopify_conn():
 #Convert order row to a json-compatible format
 def row_to_json(r):
     return {
-        "barcode": int(r[4].value[:-1]),
+        "barcode": int(str(r[4].value)[:11]),
         "quantity": int(r[0].value),
         "requires_shipping": "true",
         "title": r[2].value
     }
 
 def get_product(products,barcode):
-    item = first(lambda i: str(i["barcode"]) == str(barcode),products)
+    item = first(lambda i: str(i["barcode"])[:11] == str(barcode)[:11],products)
     if item == None:
         raise Exception("Item barcode " + str(barcode) + " not found.")
     return item
@@ -90,9 +90,7 @@ def get_carrier_names(conn):
     carriers = map(lambda s: s["name"], cs_resp["carrier_services"])
     return list(carriers)
 
-def gen_order(conn, cid, email, fname):
-    form = load_workbook(filename=fname, read_only=True)['Order Form'] 
-
+def get_products(conn, form):
     variants = conn.get_all_products()
 
     rows = pipe(list(form.rows),[
@@ -102,6 +100,14 @@ def gen_order(conn, cid, email, fname):
         p(map,p(convert_id,variants)),
         p(map,p(add_price,variants)),
         list])
+
+    return rows
+
+
+def gen_order(conn, cid, email, fname):
+    form = load_workbook(filename=fname, read_only=True)['Order Form'] 
+
+    rows = get_products(conn, form)
 
     order = json.dumps(
             {
@@ -126,7 +132,6 @@ def make_order(customer,customers,xls_path):
     cid = customers[customer]["cid"]
     email = customers[customer]["email"]
     order = gen_order(conn, cid, email, xls_path)
-    #print(order)
     resp = conn.put_order(order)
     if resp.ok:
         tkinter.messagebox.showinfo("Success","Order successfully created.") 
