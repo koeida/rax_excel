@@ -105,7 +105,8 @@ def get_products(conn, form):
 
 
 def gen_order(conn, cid, email, fname):
-    form = load_workbook(filename=fname, read_only=True)['Order Form'] 
+    wb = load_workbook(filename=fname, read_only=True)
+    form = wb[wb.get_sheet_names()[0]] 
 
     rows = get_products(conn, form)
 
