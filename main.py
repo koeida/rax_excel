@@ -46,7 +46,7 @@ def row_to_json(r):
         "barcode": int(str(r[4].value)[:11]),
         "quantity": int(r[0].value),
         "requires_shipping": "true",
-        "title": r[2].value
+        "title": str(r[1].value) + " - " + str(r[2].value)
     }
 
 def get_product(products,barcode):
@@ -121,7 +121,7 @@ def gen_order(conn, cid, email, fname):
             }, sort_keys=True, indent=4)
     return order
     
-def make_order(customer,customers,xls_path):
+def make_order(customer, customers, xls_path):
     if customer.strip() == "":
         tkinter.messagebox.showerror("Error","You need to select a customer.")
         return
@@ -142,22 +142,15 @@ def select_file(label):
     fname = askopenfilename()
     label["text"] = fname
 
-def init():
+def init(use_pickle = False):
     conn = get_shopify_conn()
 
-    # Test/console mode
-    if len(sys.argv) > 1 and sys.argv[1] == "-t":
-        carriers = get_carrier_names(conn)
-        print(carriers)
-        customers = conn.get_all_customers()
-        print(customers[-1])
-        exit()
-
     customers = None
-    if "-c" in sys.argv: 
+    if use_pickle: 
         customers = pickle.load(open("all_customers.p","rb"))
     else:
         customers = conn.get_all_customers()
+        pickle.dump(customers,open("all_customers.p","wb"))
 
     customer_ids = {}
     # Remove customers who have no address
@@ -182,47 +175,47 @@ def init():
     customer_list.sort(key = lambda c: c.upper())
     return (conn, customer_ids, customer_list)
 
-root = Tk()
-root.title("Seed Racks Excel Order Reader")
-root.geometry("600x100")
+if __name__ == "__main__":
+    conn = None
+    customer_ids = None
+    customer_list = None
 
-try:
-    w = Label(root,text="LOADING...")
-    w.pack()
-    w.wait_visibility()
-    conn, customer_ids, customer_list = init()
-    w.destroy()
-except: 
-    tkinter.messagebox.showerror("Error retrieving customer info",
-                                 "Error retrieving customer info: Either the internet ain't working or your shopify connection info is wrong in conn_info.py")
-    exit()
+    try:
+        conn, customer_ids, customer_list = init()
+        root = Tk()
+        root.title("Seed Racks Excel Order Reader")
+        root.geometry("600x100")
+        w = Label(root,text="LOADING...")
+        w.pack()
+        w.wait_visibility()
+        w.destroy()
+    except: 
+        tkinter.messagebox.showerror("Error retrieving customer info",
+                                     "Error retrieving customer info: Either the internet ain't working or your shopify connection info is wrong in conn_info.py")
+        exit()
 
 
-# Allow user to select pre-existing customer
-Label(root, text="Select Customer:").pack()
-customer_selection = StringVar(root)
-customer_selection.set(customer_list[0])
-customer_menu = Combobox(root)
-customer_menu['values'] = customer_list
-customer_menu['width'] = 100
-customer_menu.pack()
+    # Allow user to select pre-existing customer
+    Label(root, text="Select Customer:").pack()
+    customer_selection = StringVar(root)
+    customer_selection.set(customer_list[0])
+    customer_menu = Combobox(root)
+    customer_menu['values'] = customer_list
+    customer_menu['width'] = 100
+    customer_menu.pack()
 
-browse_row = Frame(root)
-lab = Label(browse_row, width=15, text="", anchor='w', background="white", relief="sunken")
-browse_button = Button(browse_row, text="Select Excel File", command=lambda: select_file(lab))
-browse_row.pack(side=TOP, fill=X, padx=5, pady=5)
-browse_button.pack(side=LEFT)
-lab.pack(side=RIGHT, padx=5, expand=YES, fill=X)
+    browse_row = Frame(root)
+    lab = Label(browse_row, width=15, text="", anchor='w', background="white", relief="sunken")
+    browse_button = Button(browse_row, text="Select Excel File", command=lambda: select_file(lab))
+    browse_row.pack(side=TOP, fill=X, padx=5, pady=5)
+    browse_button.pack(side=LEFT)
+    lab.pack(side=RIGHT, padx=5, expand=YES, fill=X)
 
-Button(root, text="Create Order", command=lambda: make_order(
-    customer_menu.get(),
-    customer_ids,
-    lab["text"])).pack()
+    Button(root, text="Create Order", command=lambda: make_order(
+        customer_menu.get(),
+        customer_ids,
+        lab["text"])).pack()
 
-# Remaining work: 
-# Whatever that missing piece of info Elspeth mentioned in the last email
-# Version control
+    browse_button.pack()
 
-browse_button.pack()
-
-root.mainloop()
+    root.mainloop()
